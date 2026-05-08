@@ -1,0 +1,40 @@
+# ============================================================
+# FlowBoard Backend — Python Dependencies
+# Python 3.12+ required
+# ============================================================
+
+# --- Web Framework ---
+fastapi==0.115.5            # High-performance async API framework
+uvicorn[standard]==0.32.1   # ASGI server (includes websockets, httptools)
+
+# --- Database ---
+sqlalchemy==2.0.36          # Modern async ORM (2.0 = breaking changes from 1.x)
+asyncpg==0.30.0             # Async PostgreSQL driver (fastest available)
+alembic==1.14.0             # Database migration tool
+
+# --- Validation & Serialization ---
+pydantic==2.10.1            # Data validation (v2 = 5-50x faster than v1)
+pydantic-settings==2.6.1    # Settings management with .env support
+email-validator==2.2.0      # Email format validation for Pydantic
+
+# --- Authentication & Security ---
+python-jose[cryptography]==3.3.0   # JWT token encoding/decoding
+passlib[bcrypt]==1.7.4             # Password hashing (bcrypt is gold standard)
+python-multipart==0.0.20           # Required for OAuth2 form data
+
+# --- WebSockets ---
+websockets==13.1            # WebSocket protocol implementation
+
+# --- HTTP Client (for internal service calls) ---
+httpx==0.28.0               # Async HTTP client
+
+# --- Environment ---
+python-dotenv==1.0.1        # Load .env files
+
+# --- CORS, Middleware ---
+# (Built into FastAPI/Starlette)
+
+# --- Development & Testing ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.28.0               # Also used for TestClient
