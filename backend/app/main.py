@@ -1,21 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.database import Base, engine
 
-# Importar todos os models para o SQLAlchemy criar as tabelas
-from app.models.user import User          # noqa
-from app.models.board import Board        # noqa
-from app.models.column import BoardColumn # noqa
-from app.models.task import Task          # noqa
 
-# Importar routers
+def create_tables():
+    """Cria tabelas na ordem correta respeitando FK."""
+    # Importar aqui dentro evita conflito de ordem no module level
+    from app.models.user import User        # noqa
+    from app.models.board import Board      # noqa
+    from app.models.column import BoardColumn  # noqa
+    from app.models.task import Task        # noqa
+    Base.metadata.create_all(bind=engine)
+
+
+create_tables()
+
 from app.api.v1.endpoints.auth    import router as auth_router
 from app.api.v1.endpoints.boards  import router as boards_router
 from app.api.v1.endpoints.columns import router as columns_router
 from app.api.v1.endpoints.tasks   import router as tasks_router
-
-# Cria todas as tabelas automaticamente
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="FlowBoard API",
