@@ -1,20 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
-from app.database import Base, engine
+from app.db.base import Base
+from app.db.session import engine
 
 
-def create_tables():
-    """Cria tabelas na ordem correta respeitando FK."""
-    # Importar aqui dentro evita conflito de ordem no module level
-    from app.models.user import User        # noqa
-    from app.models.board import Board      # noqa
-    from app.models.column import BoardColumn  # noqa
-    from app.models.task import Task        # noqa
-    Base.metadata.create_all(bind=engine)
+async def create_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
 
-create_tables()
+from app.models.user import User          # noqa
+from app.models.board import Board        # noqa
+from app.models.column import BoardColumn # noqa
+from app.models.task import Task          # noqa
 
 from app.api.v1.endpoints.auth    import router as auth_router
 from app.api.v1.endpoints.boards  import router as boards_router
@@ -42,8 +40,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup():
+    await create_tables()
+
 @app.get("/health")
-def health():
+async def health():
     return {"status": "healthy"}
 
 app.include_router(auth_router,    prefix="/api/v1")
