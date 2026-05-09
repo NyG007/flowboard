@@ -7,7 +7,7 @@
 import axios, { type AxiosError } from "axios";
 
 // Usar a URL da env var (injetada pelo Vite no build)
-const BASE_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost";
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
