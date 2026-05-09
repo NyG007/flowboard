@@ -3,6 +3,8 @@
 # This file creates and configures the FastAPI application.
 # ============================================================
 
+from app.api.v1.router import api_router
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -61,6 +63,8 @@ if settings.APP_ENV == "production":
         TrustedHostMiddleware,
         allowed_hosts=["flowboard.com", "api.flowboard.com"],
     )
+
+app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 # ──────────────────────────────────────────────────────────
 # ROUTERS — Will be wired in Phase 2
