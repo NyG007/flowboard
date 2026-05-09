@@ -5,6 +5,8 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 
+import { BoardsPage } from "@/pages/BoardsPage";
+
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -25,7 +27,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/boards" element={<div className="p-6"><h1 className="text-2xl font-bold">Kanban — Phase 4</h1></div>} />
+            <Route path="/boards" element={<BoardsPage />} />
             <Route path="/calendar" element={<div className="p-6"><h1 className="text-2xl font-bold">Calendário — Phase 5</h1></div>} />
             <Route path="/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Configurações — Phase 6</h1></div>} />
           </Route>
