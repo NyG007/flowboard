@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import secrets
 import jwt
+import uuid
 import os
 
-from app.database import get_db
+from app.db.session import get_db
 from app.models.user import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -20,6 +22,7 @@ ACCESS_TOKEN_EXPIRE  = 60 * 24
 REFRESH_TOKEN_EXPIRE = 60 * 24 * 7
 
 security = HTTPBearer()
+
 
 # ── Schemas ───────────────────────────────────────────────
 class RegisterRequest(BaseModel):
@@ -41,17 +44,18 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 class UserResponse(BaseModel):
-    id: str
+    id: uuid.UUID
     email: str
     full_name: str
     username: str
     avatar_url: Optional[str] = None
     is_active: bool
     is_verified: bool
-    created_at: datetime  # ← datetime em vez de str
+    created_at: datetime
 
     class Config:
         from_attributes = True
+
 
 # ── Helpers ───────────────────────────────────────────────
 def hash_password(password: str) -> str:
@@ -71,11 +75,11 @@ def create_token(data: dict, expires_minutes: int) -> str:
     payload["exp"] = datetime.utcnow() + timedelta(minutes=expires_minutes)
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
-from datetime import timedelta
 
-def get_current_user(
+# ── get_current_user (async) ──────────────────────────────
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     token = credentials.credentials
     try:
@@ -90,20 +94,26 @@ def get_current_user(
     except jwt.InvalidTokenError:
         raise HTTPException(401, "Token inválido")
 
-    user = db.query(User).filter(User.id == user_id).first()
+    result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+    user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(401, "Usuário não encontrado")
     if not user.is_active:
         raise HTTPException(403, "Conta desativada")
     return user
 
+
 # ── Endpoints ─────────────────────────────────────────────
 @router.post("/register", response_model=UserResponse, status_code=201)
-def register(data: RegisterRequest, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == data.email).first():
+async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == data.email))
+    if result.scalar_one_or_none():
         raise HTTPException(400, "Email já cadastrado")
-    if db.query(User).filter(User.username == data.username).first():
+
+    result = await db.execute(select(User).where(User.username == data.username))
+    if result.scalar_one_or_none():
         raise HTTPException(400, "Username já em uso")
+
     user = User(
         email=data.email,
         full_name=data.full_name,
@@ -111,13 +121,15 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
         hashed_password=hash_password(data.password),
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
+
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
     if not user or not verify_password(data.password, user.hashed_password):
         raise HTTPException(401, "Email ou senha incorretos")
     if not user.is_active:
@@ -127,13 +139,15 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
         refresh_token=create_token({"sub": str(user.id), "type": "refresh"}, REFRESH_TOKEN_EXPIRE),
     )
 
+
 @router.post("/refresh", response_model=TokenResponse)
-def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
+async def refresh(data: RefreshRequest, db: AsyncSession = Depends(get_db)):
     try:
         payload = jwt.decode(data.refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("type") != "refresh":
             raise HTTPException(401, "Token inválido")
-        user = db.query(User).filter(User.id == payload["sub"]).first()
+        result = await db.execute(select(User).where(User.id == uuid.UUID(payload["sub"])))
+        user = result.scalar_one_or_none()
         if not user:
             raise HTTPException(401, "Usuário não encontrado")
         return TokenResponse(
@@ -145,6 +159,7 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(401, "Token inválido")
 
+
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
+async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
