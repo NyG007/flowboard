@@ -1,0 +1,48 @@
+# ============================================================
+# FlowBoard .gitignore
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables (CRITICAL — never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+docker/volumes/
+
+# Database
+*.sqlite3
+*.db
+
+# Alembic (keep versions, ignore compiled)
+backend/alembic/__pycache__/
