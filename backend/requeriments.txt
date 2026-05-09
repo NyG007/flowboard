@@ -37,4 +37,4 @@ python-dotenv==1.0.1        # Load .env files
 # --- Development & Testing ---
 pytest==8.3.3
 pytest-asyncpg>=0.29.0
-httpx==0.28.0               # Also used for TestClient
+httpx==0.28.0               # Also used for TestClientd
